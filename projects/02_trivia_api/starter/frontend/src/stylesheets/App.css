@@ -25,6 +25,12 @@ li {
   text-align: center;
   margin: 5px 0px;
 }
+li:hover {
+  background-color: dodgerblue;
+  }
+li:active {
+  background-color: dodgerblue;
+  }
 
 ul {
   list-style-type: none;
