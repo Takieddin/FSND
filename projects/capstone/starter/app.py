@@ -3,7 +3,8 @@ import math
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from models import setup_db, Actor, Movie, assigning,db
+from models import setup_db, Actor, Movie, assigning, db
+from .auth import AuthError, requires_auth
 
 
 def create_app(test_config=None):
@@ -20,13 +21,14 @@ def create_app(test_config=None):
         return d
 
     @app.route('/actors')
+    @requires_auth(permission='get:actors_and_movies')
     def get_actors():
         page = request.args.get('page', 1, type=int)
         print(page)
         actors_data = Actor.query.order_by(Actor.id).all()
         if page > (len(actors_data)//ITEMS_PER_PAGE):
             page = (len(actors_data)//ITEMS_PER_PAGE)
-            if (len(actors_data) % ITEMS_PER_PAGE) !=0:
+            if (len(actors_data) % ITEMS_PER_PAGE) != 0:
                 page += 1
         print(page)
         actors = [q.format() for q in actors_data]
@@ -38,12 +40,13 @@ def create_app(test_config=None):
         })
 
     @app.route('/movies')
+    @requires_auth(permission='get:actors_and_movies')
     def get_movies():
         page = request.args.get('page', 1, type=int)
         movies_data = Movie.query.order_by(Movie.id).all()
         if page > (len(movies_data)//ITEMS_PER_PAGE):
             page = (len(movies_data)//ITEMS_PER_PAGE)
-            if (len(movies_data) % ITEMS_PER_PAGE) !=0:
+            if (len(movies_data) % ITEMS_PER_PAGE) != 0:
                 page += 1
         movies = [q.format() for q in movies_data]
         mp = paging(movies, page)
@@ -54,6 +57,7 @@ def create_app(test_config=None):
         })
 
     @app.route('/actors/<int:actor_id>', methods=['DELETE'])
+    @requires_auth(permission='delete:actor')
     def delete_actor(actor_id):
         q = Actor.query.filter(Actor.id == actor_id).one_or_none()
         if q is None:
@@ -67,6 +71,7 @@ def create_app(test_config=None):
         })
 
     @app.route('/movies/<int:movie_id>', methods=['DELETE'])
+    @requires_auth(permission='delete:movie')
     def delete_movie(movie_id):
         q = Movie.query.filter(Movie.id == movie_id).one_or_none()
         if q is None:
@@ -85,7 +90,7 @@ def create_app(test_config=None):
         name = body.get('name', None)
         age = body.get('age', None)
         gender = body.get('gender', None)
-         
+
         actor = Actor(name, age, gender)
         actor.insert()
         return jsonify({
@@ -107,6 +112,7 @@ def create_app(test_config=None):
             abort(500)
 
     @app.route('/movies/<int:movie_id>/edit', methods=['PATCH'])
+    @requires_auth(permission='modify:actor')
     def update_movie(movie_id):
         movie = Movie.query.filter(Movie.id == movie_id).one_or_none()
         if movie is None:
@@ -127,6 +133,7 @@ def create_app(test_config=None):
         }), 200
 
     @app.route('/actors/<int:actor_id>/edit', methods=['PATCH'])
+    @requires_auth(permission='modify:actor')
     def update_actor(actor_id):
         actor = Actor.query.filter(Actor.id == actor_id).one_or_none()
         if actor is None:
@@ -149,6 +156,7 @@ def create_app(test_config=None):
         }), 200
 
     @app.route('/actors/<int:actor_id>/movies')
+    @requires_auth(permission='get:actors_and_movies')
     def get_actor_movies(actor_id):
         page = request.args.get('page', 1, type=int)
         actor = Actor.query.filter(Actor.id == actor_id).one_or_none()
@@ -161,6 +169,7 @@ def create_app(test_config=None):
         }), 200
 
     @app.route('/movies/<int:movie_id>/actors')
+    @requires_auth(permission='get:actors_and_movies')
     def get_movie_actors(movie_id):
         page = request.args.get('page', 1, type=int)
         movie = Movie.query.filter(Movie.id == movie_id).one_or_none()
@@ -189,6 +198,16 @@ def create_app(test_config=None):
             'actor': body['actor_id'],
             'movie': body['movie_id']
         }), 200
+
+   
+
+    @app.errorhandler(AuthError)
+    def AuthError_invalid(error):
+        return jsonify({
+            "success": False,
+            "error": error.status_code,
+            "message": error.error
+        }), error.status_code
 
     return app
 
