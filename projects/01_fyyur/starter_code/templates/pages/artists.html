@@ -3,7 +3,7 @@
 {% block content %}
 <ul class="items">
 	{% for artist in artists %}
-	<li>
+	<li><button class="delete-button" data-id="{{ artist.id }}" >&cross;</button>
 		<a href="/artists/{{ artist.id }}">
 			<i class="fas fa-users"></i>
 			<div class="item">
@@ -13,4 +13,39 @@
 	</li>
 	{% endfor %}
 </ul>
+<script>
+	const deleteBtns = document.querySelectorAll('.delete-button');
+	for (let i = 0; i < deleteBtns.length; i++) {
+	  const btn = deleteBtns[i];
+	  btn.onclick = function(e) {
+		const artistid = e.target.dataset['id'];
+		fetch('/artists/' + artistid, {
+		  method: 'DELETE'
+		})
+		.then(function() {
+		  const item = e.target.parentElement;
+		  item.remove();
+		})
+	  }
+	}
+</script>
+<style>
+	
+li {
+	width: 30%;
+	
+	
+}
+	
+li button {
+	-webkit-appearance: button-bevel;
+	border: none;
+	outline: none;
+	color: red;
+	float: right;
+	cursor: pointer;
+	font-size: 20;
+	position: ;
+  }
+</style>
 {% endblock %}

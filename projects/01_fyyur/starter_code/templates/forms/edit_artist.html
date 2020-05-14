@@ -6,33 +6,73 @@
       <h3 class="form-heading">Edit artist <em>{{ artist.name }}</em></h3>
       <div class="form-group">
         <label for="name">Name</label>
-        {{ form.name(class_ = 'form-control', autofocus = true) }}
+        {{ form.name(class_ = 'form-control',value=artist.name, autofocus = true) }}
       </div>
       <div class="form-group">
           <label>City & State</label>
           <div class="form-inline">
             <div class="form-group">
-              {{ form.city(class_ = 'form-control', placeholder='City', autofocus = true) }}
+              {{ form.city(class_ = 'form-control', placeholder='City',value=artist.city, autofocus = true) }}
             </div>
             <div class="form-group">
-              {{ form.state(class_ = 'form-control', placeholder='State', autofocus = true) }}
+              {{ form.state(class_ = 'form-control',value=artist.state, placeholder='State', autofocus = true) }}
             </div>
           </div>
       </div>
       <div class="form-group">
           <label for="phone">Phone</label>
-          {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true) }}
+          {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx',value=artist.phone, autofocus = true) }}
         </div>
       <div class="form-group">
         <label for="genres">Genres</label>
         <small>Ctrl+Click to select multiple</small>
-        {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', id=form.state, autofocus = true) }}
+        {{ form.genres(class_ = 'form-control', placeholder='Genres, by commas',value=artist.genres,  autofocus = true) }}
+      </div>
+      
+      <div class="form-group">
+        <label for="image_link">Image Link</label>
+        {{ form.image_link(class_ = 'form-control', placeholder='http://',value=artist.image_link, autofocus = true) }}
       </div>
       <div class="form-group">
-          <label for="genres">Facebook Link</label>
-          {{ form.facebook_link(class_ = 'form-control', placeholder='http://', id=form.state, autofocus = true) }}
+          <label for="facebook_link">Facebook Link</label>
+          {{ form.facebook_link(class_ = 'form-control', placeholder='http://',value=artist.facebook_link, autofocus = true) }}
         </div>
-      <input type="submit" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
+        <div class="form-group">
+          <label for="website">website</label>
+          {{ form.website(class_ = 'form-control',value=artist.website, placeholder='http://', autofocus = true) }}
+        </div>
+        <div class="form-group">
+          <label for="seeking_venue" >Seeking venue </label>
+          <input  name= "seeking_venue_vis" type="checkbox" id = "seeking_venue_vis"  {% if artist.seeking_venue %} checked {% endif %} onclick="seeking_des()" >
+          <input style="display: none;" name= "seeking_venue" type="checkbox" id = "seeking_venue" value = "True" checked>
+        </div>
+
+        
+        <div class="form-group" id="seeking_description_text"  {% if artist.seeking_venue %} style="display: block;"{% else %} style="display: none;" {% endif %} >
+          <label for="seeking_description">Seeking description </label>
+          {{ form.seeking_description(class_ = 'form-control',value=artist.seeking_description, placeholder='...', id=form.state, autofocus = true) }}
+        </div>
+      <input type="submit"  onclick="seeking_des()" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
     </form>
   </div>
-{% endblock %}
+  <script>
+     function seeking_des() {
+  // Get the checkbox
+  var checkBox = document.getElementById("seeking_venue");
+  var checkBoxvis = document.getElementById("seeking_venue_vis");
+  // Get the output text
+  var text = document.getElementById("seeking_description_text");
+
+  // If the checkbox is checked, display the output text
+  if (checkBoxvis.checked == true){
+    text.style.display = "block";
+    checkBox.setAttribute("value","True");
+  } else {
+    text.style.display = "none";
+    checkBox.setAttribute("value","False");
+
+  }
+}
+
+  </script>
+{% endblock %}s
