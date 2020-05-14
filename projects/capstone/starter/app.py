@@ -4,7 +4,7 @@ from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import setup_db, Actor, Movie, assigning, db
-from .auth import AuthError, requires_auth
+from auth import AuthError, requires_auth
 
 
 def create_app(test_config=None):
@@ -22,26 +22,24 @@ def create_app(test_config=None):
 
     @app.route('/actors')
     @requires_auth(permission='get:actors_and_movies')
-    def get_actors():
+    def get_actors(p):
         page = request.args.get('page', 1, type=int)
-        print(page)
         actors_data = Actor.query.order_by(Actor.id).all()
         if page > (len(actors_data)//ITEMS_PER_PAGE):
             page = (len(actors_data)//ITEMS_PER_PAGE)
             if (len(actors_data) % ITEMS_PER_PAGE) != 0:
                 page += 1
-        print(page)
         actors = [q.format() for q in actors_data]
         ap = paging(actors, page)
         return jsonify({
             'success': True,
             'actors': ap,
             'totalActors': len(actors)
-        })
+        }), 200
 
     @app.route('/movies')
     @requires_auth(permission='get:actors_and_movies')
-    def get_movies():
+    def get_movies(p):
         page = request.args.get('page', 1, type=int)
         movies_data = Movie.query.order_by(Movie.id).all()
         if page > (len(movies_data)//ITEMS_PER_PAGE):
@@ -54,66 +52,47 @@ def create_app(test_config=None):
             'success': True,
             'movies': mp,
             'totalMovies': len(movies)
-        })
+        }), 200
 
-    @app.route('/actors/<int:actor_id>', methods=['DELETE'])
-    @requires_auth(permission='delete:actor')
-    def delete_actor(actor_id):
-        q = Actor.query.filter(Actor.id == actor_id).one_or_none()
-        if q is None:
-            abort(404)
-        q.delete()
-        return jsonify({
-
-            'success': True,
-            'deleted': actor_id,
-            'totalActors': len(Actor.query.all())
-        })
-
-    @app.route('/movies/<int:movie_id>', methods=['DELETE'])
-    @requires_auth(permission='delete:movie')
-    def delete_movie(movie_id):
-        q = Movie.query.filter(Movie.id == movie_id).one_or_none()
-        if q is None:
-            abort(404)
-        q.delete()
-        return jsonify({
-            'success': True,
-            'deleted': movie_id,
-            'totalMovies': len(Movie.query.all())
-        })
+    
 
     @app.route('/actors', methods=['POST'])
-    def add_actor():
+    @requires_auth(permission='add:actor')
+    def add_actor(p):
 
         body = request.get_json()
         name = body.get('name', None)
         age = body.get('age', None)
         gender = body.get('gender', None)
-
+        if gender not in ['male', 'female'] or age < 0:
+            abort(400)
         actor = Actor(name, age, gender)
         actor.insert()
         return jsonify({
             'success': True,
+            'totalActors': len(Actor.query.all())
         }), 200
 
     @app.route('/movies', methods=['POST'])
-    def add_movie():
-        try:
-            body = request.get_json()
-            title = body.get('title', None)
-            release_date = body.get('release_date', None)
-            movie = Movie(title, release_date)
-            movie.insert()
-            return jsonify({
-                'success': True,
-            }), 200
-        except:
-            abort(500)
+    @requires_auth(permission='add:movie')
+    def add_movie(p):
+
+        body = request.get_json()
+        title = body.get('title', None)
+        release_date = body.get('release_date', None)
+        if title is None:
+            abort(400)
+        movie = Movie(title, release_date)
+        movie.insert()
+        return jsonify({
+            'success': True,
+            'totalMovies': len(Movie.query.all())
+
+        }), 200
 
     @app.route('/movies/<int:movie_id>/edit', methods=['PATCH'])
-    @requires_auth(permission='modify:actor')
-    def update_movie(movie_id):
+    @requires_auth(permission='modify:movie')
+    def update_movie(p, movie_id):
         movie = Movie.query.filter(Movie.id == movie_id).one_or_none()
         if movie is None:
             abort(404)
@@ -134,7 +113,7 @@ def create_app(test_config=None):
 
     @app.route('/actors/<int:actor_id>/edit', methods=['PATCH'])
     @requires_auth(permission='modify:actor')
-    def update_actor(actor_id):
+    def update_actor(p, actor_id):
         actor = Actor.query.filter(Actor.id == actor_id).one_or_none()
         if actor is None:
             abort(404)
@@ -157,11 +136,11 @@ def create_app(test_config=None):
 
     @app.route('/actors/<int:actor_id>/movies')
     @requires_auth(permission='get:actors_and_movies')
-    def get_actor_movies(actor_id):
+    def get_actor_movies(p, actor_id):
         page = request.args.get('page', 1, type=int)
         actor = Actor.query.filter(Actor.id == actor_id).one_or_none()
         if actor is None:
-            abort(403)
+            abort(404)
         am = [m.format() for m in actor.movies]
         return jsonify({
             'success': True,
@@ -170,7 +149,7 @@ def create_app(test_config=None):
 
     @app.route('/movies/<int:movie_id>/actors')
     @requires_auth(permission='get:actors_and_movies')
-    def get_movie_actors(movie_id):
+    def get_movie_actors(p, movie_id):
         page = request.args.get('page', 1, type=int)
         movie = Movie.query.filter(Movie.id == movie_id).one_or_none()
         if movie is None:
@@ -182,12 +161,13 @@ def create_app(test_config=None):
         }), 200
 
     @app.route('/assigning', methods=['POST'])
-    def assign_actor_to_movie():
+    @requires_auth(permission='add:actor')
+    def assign_actor_to_movie(p):
         body = request.get_json()
         actor = Actor.query.filter(Actor.id == body['actor_id']).one_or_none()
         movie = Movie.query.filter(Movie.id == body['movie_id']).one_or_none()
         if movie is None or actor is None:
-            abort(404)
+            abort(422)
         if body["method"] == "assign":
             actor.movies.append(movie)
         elif body["method"] == "unassign":
@@ -198,8 +178,65 @@ def create_app(test_config=None):
             'actor': body['actor_id'],
             'movie': body['movie_id']
         }), 200
+    
+    @app.route('/actors/<int:actor_id>', methods=['DELETE'])
+    @requires_auth(permission='delete:actor')
+    def delete_actor(p, actor_id):
+        q = Actor.query.filter(Actor.id == actor_id).one_or_none()
+        if q is None:
+            abort(404)
+        q.delete()
+        return jsonify({
 
-   
+            'success': True,
+            'deleted': actor_id,
+            'totalActors': len(Actor.query.all())
+        }), 200
+
+    @app.route('/movies/<int:movie_id>', methods=['DELETE'])
+    @requires_auth(permission='delete:movie')
+    def delete_movie(p, movie_id):
+        q = Movie.query.filter(Movie.id == movie_id).one_or_none()
+        if q is None:
+            abort(404)
+        q.delete()
+        return jsonify({
+            'success': True,
+            'deleted': movie_id,
+            'totalMovies': len(Movie.query.all())
+        }), 200
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "success": False,
+            "error": 404,
+            "message": "resource not found"
+        }), 404
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return jsonify({
+            "success": False,
+            "error": 422,
+            "message": "unprocessable"
+        }), 422
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            "success": False,
+            "error": 400,
+            "message": "bad request"
+        }), 400
+
+    @app.errorhandler(500)
+    def server_error(error):
+        return jsonify({
+            "success": False,
+            "error": 500,
+            "message": "Internal Server Error"
+        }), 500
 
     @app.errorhandler(AuthError)
     def AuthError_invalid(error):

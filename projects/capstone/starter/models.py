@@ -5,10 +5,9 @@ import json
 import os
 
 database_path = os.environ['DATABASE_URL']
-print("database_path="+database_path)
 database_name = "capstone"
-database_path = "postgres://postgres:0000@{}/{}".format(
-    'localhost:5432', database_name)
+# database_path = "postgres://postgres:0000@{}/{}".format(
+# 'localhost:5432', database_name)
 
 db = SQLAlchemy()
 
@@ -65,8 +64,7 @@ class Actor(db.Model):
     age = db.Column(db.Integer)
     # gender = db.Column(db.String)
     gender = db.Column(
-        db.Enum("female", "male", name="gender_enum",create_type=False))
-    
+        db.Enum("female", "male", name="gender_enum", create_type=False))
 
     def __init__(self, name, age, gender):
         self.name = name

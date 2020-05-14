@@ -1,19 +1,14 @@
 import json
+import os
 from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
 
 
-AUTH0_DOMAIN = 'ta9i.auth0.com'
-ALGORITHMS = ['RS256']
-API_AUDIENCE = 'CoffeShopAPI'
-
-# AuthError Exception
-'''
-AuthError Exception
-A standardized way to communicate auth failure modes
-'''
+AUTH0_DOMAIN = os.environ['AUTH0_DOMAIN']
+ALGORITHMS = os.environ['ALGORITHMS']
+API_AUDIENCE = os.environ['API_AUDIENCE']
 
 
 class AuthError(Exception):
@@ -127,8 +122,6 @@ def requires_auth(permission=''):
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
             payload = verify_decode_jwt(token)
-            print(permission)
-            print(payload)
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 
